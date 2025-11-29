@@ -1,0 +1,65 @@
+# /.lock 为配置文件锁 如变更配置请删除 
+# 否则第一次创建后不会变更配置
+# http://localhost:5000/xxxxxx/ xxxx内容在.url中 也可以看web容器日志
+# http://localhost:6099/默认密码admin 请及时更改
+# http://localhost:7827/bilibili/login/qrcode 扫描登录B站账号
+# .env 内容如下
+#BASE_DIR=/www/wwwroot/test1   # 挂载路径
+# 挂载路径
+#QQ_NUMBER=2122630796
+# 机器人QQ号码 机器人qq多少写什么 
+#NAPCAT_PORT=6102
+# NAPCAT 端口 登录机器人用 密码admin 记得更改
+#STARBOT_PORT=7828
+# STARBOT端口 扫码登录b站用
+#WEB_CONFIG_PORT=5000
+# Web配置面板端口
+
+
+services:
+  starbot-webconfig:
+    image: heiyub/starbot:3.0-beta7web
+    container_name: starbot-webconfig
+    restart: unless-stopped
+    ports:
+      - "${WEB_CONFIG_PORT}:5000" # http://localhost:5000/xxxxxx/ 开始配置主播
+    volumes:
+      - "${BASE_DIR}:/starbot/"
+    environment:
+      TZ: "Asia/Shanghai"
+    networks:
+      - starbot_napcat
+  starbot:
+    image: heiyub/starbot:3.0-beta7nc
+    container_name: Starbot3.0-beta7nc
+    restart: unless-stopped
+    ports:
+      - "${STARBOT_PORT}:7827" # http://localhost:7827/bilibili/login/qrcode 扫描
+    volumes:
+      - "${BASE_DIR}:/app"
+      - "${BASE_DIR}/napcat/config:/napcat_config"
+    environment:
+      SENDERS_QQ: ${QQ_NUMBER}
+      TZ: "Asia/Shanghai"
+    networks:
+      - starbot_napcat
+  napcat:
+    image: mlikiowa/napcat-docker:latest
+    container_name: napcat_starbot
+    restart: unless-stopped
+    ports:
+      - "${NAPCAT_PORT}:6099" # http://localhost:6099/默认密码admin 请及时更改
+    volumes:
+      - "${BASE_DIR}/napcat/config:/app/napcat/config"
+      - "${BASE_DIR}/napcat/ntqq:/app/.config/QQ"
+    environment:
+      TZ: "Asia/Shanghai"
+    networks:
+      - starbot_napcat
+    depends_on:
+      starbot:
+        condition: service_started
+networks:
+  starbot_napcat:
+    name: starbot_napcat
+    driver: bridge
